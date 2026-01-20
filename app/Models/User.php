@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     /**
@@ -22,6 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        // ⚠️ PAS public_id (généré automatiquement)
+        // ⚠️ PAS status (piloté par le backend)
     ];
 
     /**
@@ -37,7 +39,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
      * @return array<string, string>
      */
@@ -47,6 +49,22 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'last_seen' => 'datetime',
         ];
+    }
+
+    /**
+     * Booted model events.
+     * Génération automatique du public_id
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (User $user) {
+            do {
+                $publicId = 'RT-' . strtoupper(Str::random(6));
+            } while (self::where('public_id', $publicId)->exists());
+
+            $user->public_id = $publicId;
+        });
     }
 }
