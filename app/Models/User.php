@@ -98,4 +98,24 @@ class User extends Authenticatable
         return $query->where('status', 'online');
     }
 
+    /**
+     * Les conversations de l'utilisateur
+     */
+    public function conversationsAsUser1()
+    {
+        return $this->hasMany(Conversation::class, 'user1_id');
+    }
+
+    public function conversationsAsUser2()
+    {
+        return $this->hasMany(Conversation::class, 'user2_id');
+    }
+
+    public function conversations()
+    {
+        return Conversation::where('user1_id', $this->id)
+            ->orWhere('user2_id', $this->id);
+    }
+
+
 }
