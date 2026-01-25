@@ -5,6 +5,7 @@ use App\Http\Controllers\ConversationController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\MessageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,6 +61,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])
         ->name('conversations.show');
+
+    // Messages (ICI)
+    Route::post(
+        '/conversations/{conversation}/messages',
+        [MessageController::class, 'store']
+    )->name('messages.store');
 });
 
 /*

@@ -34,8 +34,15 @@ class ConversationController extends Controller
 
     public function show($id)
     {
+        $conversation = \App\Models\Conversation::with([
+            'messages.sender',
+            'user1',
+            'user2',
+        ])->findOrFail($id);
+
         return Inertia::render('Conversations/Show', [
-            'conversationId' => $id,
+            'conversation' => $conversation,
         ]);
     }
+
 }
