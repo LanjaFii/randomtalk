@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Symfony\Component\HttpFoundation\Response;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -31,9 +32,33 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
+
             'auth' => [
                 'user' => $request->user(),
             ],
         ];
+    }
+
+    /**
+     * Handle the incoming request.
+     */
+    public function handle(Request $request, \Closure $next): Response
+    {
+        $response = parent::handle($request, $next);
+
+        // 🔒 Empêche le cache navigateur des pages authentifiées
+        if ($request->user()) {
+            $response->headers->set(
+                'Cache-Control',
+                'no-store, no-cache, must-revalidate, max-age=0'
+            );
+            $response->headers->set('Pragma', 'no-cache');
+            $response->headers->set(
+                'Expires',
+                'Sat, 01 Jan 2000 00:00:00 GMT'
+            );
+        }
+
+        return $response;
     }
 }

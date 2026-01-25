@@ -67,4 +67,35 @@ class User extends Authenticatable
             $user->public_id = $publicId;
         });
     }
+
+        /**
+     * Marquer l'utilisateur comme online
+     */
+    public function markOnline(): void
+    {
+        $this->forceFill([
+            'status' => 'online',
+            'last_seen' => now(),
+        ])->saveQuietly();
+    }
+
+    /**
+     * Marquer l'utilisateur comme offline
+     */
+    public function markOffline(): void
+    {
+        $this->forceFill([
+            'status' => 'offline',
+            'last_seen' => now(),
+        ])->saveQuietly();
+    }
+
+    /**
+     * Scope utilisateurs en ligne
+     */
+    public function scopeOnline($query)
+    {
+        return $query->where('status', 'online');
+    }
+
 }
