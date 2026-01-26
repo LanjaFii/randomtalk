@@ -3,13 +3,57 @@ import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
+
+    useEffect(() => {
+        // centralise la gestion de la présence quand l'utilisateur est authentifié
+        if (!window.Echo) return;
+
+        // init storage
+        window.__onlineUsers = window.__onlineUsers || [];
+
+        const presence = window.Echo.join('presence.online')
+            .here((users) => {
+                window.__onlineUsers = users.map((u) => u.id);
+                window.dispatchEvent(
+                    new CustomEvent('onlineUsersUpdated', {
+                        detail: window.__onlineUsers,
+                    }),
+                );
+            })
+            .joining((user) => {
+                window.__onlineUsers = [...(window.__onlineUsers || []), user.id];
+                window.dispatchEvent(
+                    new CustomEvent('onlineUsersUpdated', {
+                        detail: window.__onlineUsers,
+                    }),
+                );
+            })
+            .leaving((user) => {
+                window.__onlineUsers = (window.__onlineUsers || []).filter(
+                    (id) => id !== user.id,
+                );
+                window.dispatchEvent(
+                    new CustomEvent('onlineUsersUpdated', {
+                        detail: window.__onlineUsers,
+                    }),
+                );
+            });
+
+        return () => {
+            try {
+                window.Echo.leave('presence.online');
+            } catch (e) {
+                // ignore
+            }
+        };
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-100">

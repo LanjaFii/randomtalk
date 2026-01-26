@@ -8,7 +8,10 @@ export default function Show({ conversation }) {
     const [messages, setMessages] = useState(conversation.messages);
     const [realtimeStatus, setRealtimeStatus] = useState('inactive');
 
-    // ✍️ Typing
+    /* 🟢 Online users (Presence) */
+    const [onlineUsers, setOnlineUsers] = useState([]);
+
+    /* ✍️ Typing */
     const [typingUser, setTypingUser] = useState(null);
     const typingTimeoutRef = useRef(null);
 
@@ -19,10 +22,32 @@ export default function Show({ conversation }) {
         content: '',
     });
 
-    /* 🔥 Realtime messages + typing + statuses */
+    /* 👤 Autre utilisateur */
+    const otherUser =
+        conversation.user1.id === auth.user.id
+            ? conversation.user2
+            : conversation.user1;
+
+    const isOtherOnline = onlineUsers.includes(otherUser.id);
+
+    const formatLastSeen = () => {
+        if (!otherUser.last_seen) return 'Hors ligne';
+
+        const diff = Math.floor(
+            (Date.now() - new Date(otherUser.last_seen)) / 1000
+        );
+
+        if (diff < 60) return 'vu il y a quelques secondes';
+        if (diff < 3600) return `vu il y a ${Math.floor(diff / 60)} min`;
+        if (diff < 86400) return `vu il y a ${Math.floor(diff / 3600)} h`;
+        return `vu il y a ${Math.floor(diff / 86400)} j`;
+    };
+
+    /* 🔥 Realtime messages + typing + delivered / seen */
     useEffect(() => {
         if (!window.Echo) return;
 
+        /* 💬 Conversation channel */
         const channelName = `conversation.${conversation.id}`;
         const channel = window.Echo.private(channelName);
         channelRef.current = channel;
@@ -32,20 +57,15 @@ export default function Show({ conversation }) {
         const messageHandler = (e) => {
             const message = e.message;
 
-            // ⛔ ignore mes propres messages
             if (message.sender_id === auth.user.id) return;
 
             setMessages(prev => [...prev, message]);
 
-            // ✅ DELIVERED
-            window.axios.post(
-                route('messages.delivered', message.id)
-            );
+            window.axios.post(route('messages.delivered', message.id));
         };
 
         channel.listen('.message.sent', messageHandler);
 
-        /* ✅ DELIVERED realtime */
         channel.listen('.message.delivered', (e) => {
             setMessages(prev =>
                 prev.map(m =>
@@ -56,7 +76,6 @@ export default function Show({ conversation }) {
             );
         });
 
-        /* 👀 SEEN realtime */
         channel.listen('.message.seen', (e) => {
             setMessages(prev =>
                 prev.map(m =>
@@ -67,7 +86,6 @@ export default function Show({ conversation }) {
             );
         });
 
-        /* ✍️ Typing whisper */
         channel.listenForWhisper('typing', (e) => {
             if (e.user_id === auth.user.id) return;
 
@@ -86,16 +104,30 @@ export default function Show({ conversation }) {
         };
     }, [conversation.id, auth.user.id]);
 
-    /* 👀 Seen quand les messages changent */
+    /* 🟢 Presence channel (online / offline) */
     useEffect(() => {
-        messages.forEach((message) => {
+        // utilise l'état global géré par AuthenticatedLayout
+        setOnlineUsers(window.__onlineUsers || []);
+
+        const handler = (e) => {
+            setOnlineUsers(e.detail || []);
+        };
+
+        window.addEventListener('onlineUsersUpdated', handler);
+
+        return () => {
+            window.removeEventListener('onlineUsersUpdated', handler);
+        };
+    }, []);
+
+    /* 👀 Seen auto */
+    useEffect(() => {
+        messages.forEach(message => {
             if (
                 message.sender_id !== auth.user.id &&
                 !message.seen_at
             ) {
-                window.axios.post(
-                    route('messages.seen', message.id)
-                );
+                window.axios.post(route('messages.seen', message.id));
             }
         });
 
@@ -118,12 +150,9 @@ export default function Show({ conversation }) {
         e.preventDefault();
         if (!data.content.trim()) return;
 
-        const content = data.content; // sauvegarde
-
-        // ✅ reset IMMEDIAT
+        const content = data.content;
         reset();
 
-        // ⚡ Optimistic UI
         const tempMessage = {
             id: `temp-${Date.now()}`,
             content,
@@ -150,23 +179,24 @@ export default function Show({ conversation }) {
         });
     };
 
-
     return (
         <AuthenticatedLayout
             header={
-                <h2 className="text-xl font-semibold text-gray-800">
-                    Conversation
-                    <span className="ml-3 text-sm text-gray-500">
-                        Realtime: {realtimeStatus}
-                    </span>
-                </h2>
+                <div>
+                    <h2 className="text-xl font-semibold text-gray-800">
+                        {otherUser.name}
+                        <span className="ml-3 text-sm text-gray-500">
+                            {isOtherOnline ? '🟢 En ligne' : `⚪ ${formatLastSeen()}`}
+                        </span>
+                    </h2>
+                </div>
             }
         >
             <Head title="Conversation" />
 
             <div className="mx-auto max-w-4xl py-6 flex flex-col h-[80vh]">
                 <div className="flex-1 overflow-y-auto space-y-4 bg-white p-4 rounded-lg shadow">
-                    {messages.map((message) => {
+                    {messages.map(message => {
                         const isMe = message.sender_id === auth.user.id;
 
                         return (
@@ -207,7 +237,6 @@ export default function Show({ conversation }) {
                         );
                     })}
 
-                    {/* ✍️ Typing indicator */}
                     {typingUser && (
                         <div className="text-sm italic text-gray-500">
                             {typingUser} est en train d’écrire…

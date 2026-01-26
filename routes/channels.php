@@ -11,3 +11,11 @@ Broadcast::channel('conversation.{conversationId}', function ($user, $conversati
         })
         ->exists();
 });
+
+Broadcast::channel('presence.online', function ($user) {
+    return [
+        'id' => $user->id,
+        'name' => $user->name,
+        'public_id' => $user->public_id,
+    ];
+});
