@@ -7,61 +7,74 @@ export default function Show({ conversation }) {
 
     const [messages, setMessages] = useState(conversation.messages);
     const [realtimeStatus, setRealtimeStatus] = useState('inactive');
+
+    // 🧠 Typing state
+    const [typingUser, setTypingUser] = useState(null);
+    const typingTimeoutRef = useRef(null);
+
     const messagesEndRef = useRef(null);
+    const channelRef = useRef(null);
 
     const { data, setData, post, processing, reset } = useForm({
         content: '',
     });
 
-    /* 🔥 Realtime (AUTRES utilisateurs seulement) */
+    /* 🔥 Realtime messages + typing */
     useEffect(() => {
-        if (!window.Echo) {
-            console.warn('Echo not available — realtime disabled');
-            setRealtimeStatus('unavailable');
-            return;
-        }
+        if (!window.Echo) return;
 
         const channelName = `conversation.${conversation.id}`;
         const channel = window.Echo.private(channelName);
+        channelRef.current = channel;
 
-        const handler = (e) => {
-            console.info('Realtime event received:', e);
-
-            // ⛔ Ignore les messages envoyés par moi-même
-            if (e.message.sender_id === auth.user.id) {
-                return;
-            }
-
-            setRealtimeStatus('received');
+        /* 📩 Messages */
+        const messageHandler = (e) => {
+            if (e.message.sender_id === auth.user.id) return;
             setMessages(prev => [...prev, e.message]);
         };
 
-        channel.listen('.message.sent', handler);
+        channel.listen('.message.sent', messageHandler);
+
+        /* ✍️ Typing whisper */
+        channel.listenForWhisper('typing', (e) => {
+            if (e.user_id === auth.user.id) return;
+
+            setTypingUser(e.user_name);
+
+            // reset timer
+            clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = setTimeout(() => {
+                setTypingUser(null);
+            }, 3000);
+        });
 
         return () => {
-            try {
-                channel.stopListening('.message.sent', handler);
-            } catch (err) {}
-
-            try {
-                window.Echo.leave(`private-${channelName}`);
-            } catch (err) {}
-
-            setRealtimeStatus('inactive');
+            channel.stopListening('.message.sent', messageHandler);
+            window.Echo.leave(`private-${channelName}`);
         };
     }, [conversation.id, auth.user.id]);
 
     /* ✅ Auto-scroll */
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, typingUser]);
+
+    /* ✍️ Emit typing whisper */
+    const handleTyping = (value) => {
+        setData('content', value);
+
+        if (!channelRef.current) return;
+
+        channelRef.current.whisper('typing', {
+            user_id: auth.user.id,
+            user_name: auth.user.name,
+        });
+    };
 
     const submit = (e) => {
         e.preventDefault();
-
         if (!data.content.trim()) return;
 
-        // ⚡ Optimistic UI
         const tempMessage = {
             id: `temp-${Date.now()}`,
             content: data.content,
@@ -71,6 +84,7 @@ export default function Show({ conversation }) {
         };
 
         setMessages(prev => [...prev, tempMessage]);
+        setTypingUser(null);
 
         post(route('messages.store', conversation.id), {
             preserveScroll: true,
@@ -83,11 +97,8 @@ export default function Show({ conversation }) {
 
                 if (!realMessage) return;
 
-                // 🔁 Remplacer le message temporaire
                 setMessages(prev =>
-                    prev.map(m =>
-                        m.pending ? realMessage : m
-                    )
+                    prev.map(m => (m.pending ? realMessage : m))
                 );
             },
         });
@@ -98,7 +109,7 @@ export default function Show({ conversation }) {
             header={
                 <h2 className="text-xl font-semibold text-gray-800">
                     Conversation
-                    <span className="ml-3 text-sm font-normal text-gray-500">
+                    <span className="ml-3 text-sm text-gray-500">
                         Realtime: {realtimeStatus}
                     </span>
                 </h2>
@@ -108,21 +119,13 @@ export default function Show({ conversation }) {
 
             <div className="mx-auto max-w-4xl py-6 flex flex-col h-[80vh]">
                 <div className="flex-1 overflow-y-auto space-y-4 bg-white p-4 rounded-lg shadow">
-                    {messages.length === 0 && (
-                        <p className="text-gray-500 text-center">
-                            Aucun message pour l’instant 👀
-                        </p>
-                    )}
-
                     {messages.map((message) => {
                         const isMe = message.sender_id === auth.user.id;
 
                         return (
                             <div
                                 key={message.id}
-                                className={`flex ${
-                                    isMe ? 'justify-end' : 'justify-start'
-                                }`}
+                                className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                             >
                                 <div
                                     className={`max-w-xs rounded-lg px-4 py-2 text-sm ${
@@ -132,7 +135,6 @@ export default function Show({ conversation }) {
                                     }`}
                                 >
                                     <p>{message.content}</p>
-
                                     <div className="mt-1 text-xs opacity-70 text-right">
                                         {message.created_at
                                             ? new Date(message.created_at).toLocaleString()
@@ -143,6 +145,13 @@ export default function Show({ conversation }) {
                         );
                     })}
 
+                    {/* ✍️ Typing indicator */}
+                    {typingUser && (
+                        <div className="text-sm italic text-gray-500">
+                            {typingUser} est en train d’écrire…
+                        </div>
+                    )}
+
                     <div ref={messagesEndRef} />
                 </div>
 
@@ -150,7 +159,7 @@ export default function Show({ conversation }) {
                     <input
                         type="text"
                         value={data.content}
-                        onChange={(e) => setData('content', e.target.value)}
+                        onChange={(e) => handleTyping(e.target.value)}
                         placeholder="Écris un message…"
                         className="flex-1 rounded-lg border px-4 py-2"
                     />
