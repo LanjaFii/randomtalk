@@ -15,6 +15,7 @@ class MessageController extends Controller
             'content' => ['required', 'string', 'max:5000'],
         ]);
 
+        // 🔒 Sécurité : l’utilisateur doit faire partie de la conversation
         if (
             $conversation->user1_id !== $request->user()->id &&
             $conversation->user2_id !== $request->user()->id
@@ -26,9 +27,9 @@ class MessageController extends Controller
             'conversation_id' => $conversation->id,
             'sender_id' => $request->user()->id,
             'content' => $request->content,
-            'created_at' => now(),
         ]);
 
+        // 📡 Broadcast realtime (receiver seulement)
         broadcast(new MessageSent($message))->toOthers();
 
         return back();

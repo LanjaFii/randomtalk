@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\MessageStatusController;
 
 /*
 |--------------------------------------------------------------------------
@@ -67,6 +68,13 @@ Route::middleware('auth')->group(function () {
         '/conversations/{conversation}/messages',
         [MessageController::class, 'store']
     )->name('messages.store');
+
+    // Message status routes
+    Route::post('/messages/{message}/delivered', [MessageStatusController::class, 'delivered'])
+        ->name('messages.delivered');
+
+    Route::post('/messages/{message}/seen', [MessageStatusController::class, 'seen'])
+        ->name('messages.seen');
 });
 
 /*

@@ -8,7 +8,7 @@ export default function Show({ conversation }) {
     const [messages, setMessages] = useState(conversation.messages);
     const [realtimeStatus, setRealtimeStatus] = useState('inactive');
 
-    // 🧠 Typing state
+    // ✍️ Typing
     const [typingUser, setTypingUser] = useState(null);
     const typingTimeoutRef = useRef(null);
 
@@ -19,21 +19,53 @@ export default function Show({ conversation }) {
         content: '',
     });
 
-    /* 🔥 Realtime messages + typing */
+    /* 🔥 Realtime messages + typing + statuses */
     useEffect(() => {
         if (!window.Echo) return;
 
         const channelName = `conversation.${conversation.id}`;
         const channel = window.Echo.private(channelName);
         channelRef.current = channel;
+        setRealtimeStatus('connected');
 
-        /* 📩 Messages */
+        /* 📩 Message reçu */
         const messageHandler = (e) => {
-            if (e.message.sender_id === auth.user.id) return;
-            setMessages(prev => [...prev, e.message]);
+            const message = e.message;
+
+            // ⛔ ignore mes propres messages
+            if (message.sender_id === auth.user.id) return;
+
+            setMessages(prev => [...prev, message]);
+
+            // ✅ DELIVERED
+            window.axios.post(
+                route('messages.delivered', message.id)
+            );
         };
 
         channel.listen('.message.sent', messageHandler);
+
+        /* ✅ DELIVERED realtime */
+        channel.listen('.message.delivered', (e) => {
+            setMessages(prev =>
+                prev.map(m =>
+                    m.id === e.message.id
+                        ? { ...m, delivered_at: e.message.delivered_at }
+                        : m
+                )
+            );
+        });
+
+        /* 👀 SEEN realtime */
+        channel.listen('.message.seen', (e) => {
+            setMessages(prev =>
+                prev.map(m =>
+                    m.id === e.message.id
+                        ? { ...m, seen_at: e.message.seen_at }
+                        : m
+                )
+            );
+        });
 
         /* ✍️ Typing whisper */
         channel.listenForWhisper('typing', (e) => {
@@ -41,7 +73,6 @@ export default function Show({ conversation }) {
 
             setTypingUser(e.user_name);
 
-            // reset timer
             clearTimeout(typingTimeoutRef.current);
             typingTimeoutRef.current = setTimeout(() => {
                 setTypingUser(null);
@@ -51,15 +82,27 @@ export default function Show({ conversation }) {
         return () => {
             channel.stopListening('.message.sent', messageHandler);
             window.Echo.leave(`private-${channelName}`);
+            setRealtimeStatus('inactive');
         };
     }, [conversation.id, auth.user.id]);
 
-    /* ✅ Auto-scroll */
+    /* 👀 Seen quand les messages changent */
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, typingUser]);
+        messages.forEach((message) => {
+            if (
+                message.sender_id !== auth.user.id &&
+                !message.seen_at
+            ) {
+                window.axios.post(
+                    route('messages.seen', message.id)
+                );
+            }
+        });
 
-    /* ✍️ Emit typing whisper */
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages, auth.user.id]);
+
+    /* ✍️ Emit typing */
     const handleTyping = (value) => {
         setData('content', value);
 
@@ -75,9 +118,15 @@ export default function Show({ conversation }) {
         e.preventDefault();
         if (!data.content.trim()) return;
 
+        const content = data.content; // sauvegarde
+
+        // ✅ reset IMMEDIAT
+        reset();
+
+        // ⚡ Optimistic UI
         const tempMessage = {
             id: `temp-${Date.now()}`,
-            content: data.content,
+            content,
             sender_id: auth.user.id,
             created_at: new Date().toISOString(),
             pending: true,
@@ -88,10 +137,7 @@ export default function Show({ conversation }) {
 
         post(route('messages.store', conversation.id), {
             preserveScroll: true,
-            preserveState: true,
             onSuccess: (page) => {
-                reset();
-
                 const realMessage =
                     page.props.conversation?.messages?.slice(-1)[0];
 
@@ -103,6 +149,7 @@ export default function Show({ conversation }) {
             },
         });
     };
+
 
     return (
         <AuthenticatedLayout
@@ -135,10 +182,25 @@ export default function Show({ conversation }) {
                                     }`}
                                 >
                                     <p>{message.content}</p>
-                                    <div className="mt-1 text-xs opacity-70 text-right">
-                                        {message.created_at
-                                            ? new Date(message.created_at).toLocaleString()
-                                            : '…'}
+
+                                    <div className="mt-1 flex items-center justify-end gap-1 text-xs opacity-70">
+                                        <span>
+                                            {message.created_at
+                                                ? new Date(message.created_at).toLocaleTimeString()
+                                                : '…'}
+                                        </span>
+
+                                        {isMe && (
+                                            <>
+                                                {message.seen_at ? (
+                                                    <span className="text-blue-300">✓✓</span>
+                                                ) : message.delivered_at ? (
+                                                    <span>✓✓</span>
+                                                ) : (
+                                                    <span>✓</span>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>
