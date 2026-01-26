@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\MessageSent;
 use App\Models\Conversation;
 use App\Models\Message;
 use Illuminate\Http\Request;
@@ -14,7 +15,6 @@ class MessageController extends Controller
             'content' => ['required', 'string', 'max:5000'],
         ]);
 
-        // Sécurité : vérifier que l'utilisateur fait partie de la conversation
         if (
             $conversation->user1_id !== $request->user()->id &&
             $conversation->user2_id !== $request->user()->id
@@ -22,12 +22,15 @@ class MessageController extends Controller
             abort(403);
         }
 
-        Message::create([
+        $message = Message::create([
             'conversation_id' => $conversation->id,
             'sender_id' => $request->user()->id,
             'content' => $request->content,
+            'created_at' => now(),
         ]);
 
-        return redirect()->route('conversations.show', $conversation);
+        broadcast(new MessageSent($message))->toOthers();
+
+        return back();
     }
 }
