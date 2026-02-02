@@ -345,7 +345,7 @@ export default function AuthenticatedLayout({ header, children }) {
             </main>
 
             {/* Custom Animation Styles */}
-            <style jsx>{`
+            <style>{`
                 @keyframes pulse-slow {
                     0%, 100% { opacity: 0.2; }
                     50% { opacity: 0.4; }

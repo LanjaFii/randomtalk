@@ -28,7 +28,13 @@ class ConversationService
     {
         return Conversation::where('user1_id', $user->id)
             ->orWhere('user2_id', $user->id)
-            ->with(['user1', 'user2'])
+            ->with(['user1', 'user2', 'lastMessage.sender'])
+            ->withCount([
+                'messages as unread_count' => function ($q) use ($user) {
+                    $q->where('sender_id', '!=', $user->id)
+                        ->whereNull('seen_at');
+                },
+            ])
             ->latest()
             ->get();
     }

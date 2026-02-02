@@ -1,10 +1,12 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export default function Index({ conversations }) {
     const { auth } = usePage().props;
     const [onlineUsers, setOnlineUsers] = useState([]);
+    const [convs, setConvs] = useState(conversations);
+    const subscribedRef = useRef(new Set());
     
     useEffect(() => {
         // utilise l'état global géré par AuthenticatedLayout
@@ -20,6 +22,61 @@ export default function Index({ conversations }) {
             window.removeEventListener('onlineUsersUpdated', handler);
         };
     }, []);
+
+    // sync props -> local state
+    useEffect(() => {
+        setConvs(conversations);
+    }, [conversations]);
+
+    // realtime: subscribe to each conversation channel to update last message / unread count
+    useEffect(() => {
+        if (!window.Echo) return;
+
+        const subscribe = (conversation) => {
+            if (subscribedRef.current.has(conversation.id)) return;
+
+            const channelName = `conversation.${conversation.id}`;
+            const channel = window.Echo.private(channelName);
+
+            const messageHandler = (e) => {
+                const message = e.message;
+
+                setConvs(prev => prev.map(c => {
+                    if (c.id !== conversation.id) return c;
+
+                    const updated = { ...c, last_message: message };
+
+                    // increment unread if the incoming message is from the other user
+                    if (message.sender_id !== auth.user.id) {
+                        updated.unread_count = (c.unread_count || 0) + 1;
+                    }
+
+                    return updated;
+                }));
+            };
+
+            const seenHandler = (e) => {
+                setConvs(prev => prev.map(c => c.id === conversation.id ? { ...c, unread_count: 0 } : c));
+            };
+
+            channel.listen('.message.sent', messageHandler);
+            channel.listen('.message.seen', seenHandler);
+
+            subscribedRef.current.add(conversation.id);
+        };
+
+        convs.forEach(subscribe);
+
+        return () => {
+            // cleanup leave all subscribed channels
+            subscribedRef.current.forEach(id => {
+                try {
+                    window.Echo.leave(`private-conversation.${id}`);
+                } catch (e) {}
+            });
+            subscribedRef.current.clear();
+        };
+    }, [convs, auth.user.id]);
 
     const getOtherUser = (conversation) => {
         return conversation.user1.id === auth.user.id
@@ -42,11 +99,7 @@ export default function Index({ conversations }) {
 
     return (
         <AuthenticatedLayout
-            header={
-                <h2 className="text-2xl font-light text-white">
-                    Your Conversations
-                </h2>
-            }
+            header={"Your Conversations"}
         >
             <Head title="Conversations" />
 
@@ -57,7 +110,7 @@ export default function Index({ conversations }) {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-gray-400">Total Conversations</p>
-                                <p className="mt-2 text-3xl font-light text-white">{conversations.length}</p>
+                                <p className="mt-2 text-3xl font-light text-white">{convs.length}</p>
                             </div>
                             <div className="h-12 w-12 rounded-full bg-cyan-500/10 flex items-center justify-center">
                                 <svg className="h-6 w-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -72,7 +125,7 @@ export default function Index({ conversations }) {
                             <div>
                                 <p className="text-sm text-gray-400">Online Now</p>
                                 <p className="mt-2 text-3xl font-light text-white">
-                                    {conversations.filter(conv => 
+                                    {convs.filter(conv => 
                                         onlineUsers.includes(getOtherUser(conv).id)
                                     ).length}
                                 </p>
@@ -90,7 +143,7 @@ export default function Index({ conversations }) {
                             <div>
                                 <p className="text-sm text-gray-400">Active Today</p>
                                 <p className="mt-2 text-3xl font-light text-white">
-                                    {conversations.filter(conv => {
+                                    {convs.filter(conv => {
                                         const otherUser = getOtherUser(conv);
                                         if (!otherUser.last_seen) return false;
                                         const diff = Math.floor((Date.now() - new Date(otherUser.last_seen)) / 1000);
@@ -115,7 +168,7 @@ export default function Index({ conversations }) {
                     </div>
 
                     <div className="divide-y divide-gray-800/50">
-                        {conversations.length === 0 ? (
+                        {convs.length === 0 ? (
                             <div className="px-6 py-12 text-center">
                                 <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gray-800/50 flex items-center justify-center">
                                     <svg className="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -132,10 +185,12 @@ export default function Index({ conversations }) {
                                 </button>
                             </div>
                         ) : (
-                            conversations.map(conversation => {
+                            convs.map(conversation => {
                                 const otherUser = getOtherUser(conversation);
                                 const isOnline = onlineUsers.includes(otherUser.id);
                                 const lastSeen = formatLastSeen(otherUser);
+                                const lastMessage = conversation.last_message;
+                                const hasUnread = (conversation.unread_count || 0) > 0 && lastMessage && lastMessage.sender_id !== auth.user.id;
 
                                 return (
                                     <Link
@@ -167,12 +222,17 @@ export default function Index({ conversations }) {
                                                         {isOnline ? 'Online' : 'Offline'}
                                                     </span>
                                                 </div>
-                                                
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <div className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-600'}`}></div>
-                                                    <p className="text-sm text-gray-400 truncate">
-                                                        {isOnline ? 'Available to chat' : lastSeen}
+                                                    <p className={`text-sm truncate ${hasUnread ? 'text-white font-semibold' : 'text-gray-400'}`}>
+                                                        {lastMessage ? lastMessage.content : (isOnline ? 'Available to chat' : lastSeen)}
                                                     </p>
+
+                                                    {hasUnread && (
+                                                        <div className="ms-3 inline-flex items-center rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
+                                                            {conversation.unread_count}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 

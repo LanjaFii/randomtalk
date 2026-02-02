@@ -25,4 +25,12 @@ class Conversation extends Model
     {
         return $this->hasMany(Message::class);
     }
+
+    /**
+     * Dernier message de la conversation (relation one-to-one vers le plus récent)
+     */
+    public function lastMessage()
+    {
+        return $this->hasOne(Message::class)->latestOfMany();
+    }
 }
