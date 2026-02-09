@@ -7,6 +7,10 @@ export default function Index({ conversations }) {
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [convs, setConvs] = useState(conversations);
     const subscribedRef = useRef(new Set());
+
+    const startRandom = () => {
+        router.post(route('conversations.random'));
+    };
     
     // --- CORRECTION V2 : Gestion avancée de l'historique et du BFCache ---
     useEffect(() => {
@@ -213,12 +217,6 @@ export default function Index({ conversations }) {
                                 </div>
                                 <h4 className="text-lg font-medium text-gray-300">No conversations yet</h4>
                                 <p className="text-gray-500 mt-2">Start your first conversation and discover amazing people</p>
-                                <button className="mt-4 inline-flex items-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3 text-sm font-medium text-white shadow-lg shadow-cyan-500/25 transition-all duration-300 hover:scale-105 hover:shadow-cyan-500/40">
-                                    Start Random Chat
-                                    <svg className="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                    </svg>
-                                </button>
                             </div>
                         ) : (
                             convs.map(conversation => {
@@ -298,12 +296,9 @@ export default function Index({ conversations }) {
                         Every conversation is a new adventure. Meet people from around the world and discover unexpected connections.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <button className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all duration-300 hover:scale-105 hover:shadow-cyan-500/40">
+                        <button onClick={startRandom} className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all duration-300 hover:scale-105 hover:shadow-cyan-500/40">
                             <div className="absolute inset-0 bg-gradient-to-r from-white to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                             Start Random Conversation
-                        </button>
-                        <button className="rounded-xl border border-gray-700 bg-gray-900/50 px-8 py-3 text-sm font-medium text-gray-300 transition-all duration-300 hover:border-gray-600 hover:text-white">
-                            Browse Topics
                         </button>
                     </div>
                 </div>

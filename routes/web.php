@@ -63,6 +63,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])
         ->name('conversations.show');
 
+    Route::post('/conversations/random', [ConversationController::class, 'random'])
+        ->name('conversations.random')
+        ->middleware('auth');
+
+
     // Messages (ICI)
     Route::post(
         '/conversations/{conversation}/messages',

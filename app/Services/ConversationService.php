@@ -38,4 +38,31 @@ class ConversationService
             ->latest()
             ->get();
     }
+
+    /**
+     * Trouver un utilisateur en ligne au hasard (pour la conversation aléatoire)
+     */
+    public function findRandomOnlineUser(User $currentUser): ?User
+    {
+        return User::where('id', '!=', $currentUser->id)
+            ->where('status', 'online')
+            ->inRandomOrder()
+            ->first();
+    }
+
+    /**
+     * Démarrer une conversation aléatoire avec un utilisateur en ligne
+     */
+    public function startRandomConversation(User $currentUser): ?Conversation
+    {
+        $otherUser = $this->findRandomOnlineUser($currentUser);
+
+        if (!$otherUser) {
+            return null;
+        }
+
+        return $this->getOrCreate($currentUser, $otherUser);
+    }
+
+
 }

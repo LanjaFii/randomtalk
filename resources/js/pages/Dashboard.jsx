@@ -273,9 +273,6 @@ export default function Dashboard() {
                             <div className="absolute inset-0 bg-gradient-to-r from-white to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                             Start Random Chat Now
                         </button>
-                        <button className="rounded-xl border border-gray-700 bg-gray-900/50 px-8 py-3 text-sm font-medium text-gray-300 transition-all duration-300 hover:border-gray-600 hover:text-white">
-                            Explore Topics
-                        </button>
                     </div>
                 </div>
             </div>

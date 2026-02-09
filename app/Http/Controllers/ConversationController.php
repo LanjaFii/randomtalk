@@ -45,4 +45,15 @@ class ConversationController extends Controller
         ]);
     }
 
+    public function random(Request $request, ConversationService $service)
+    {
+        $conversation = $service->startRandomConversation($request->user());
+
+        if (!$conversation) {
+            return back()->with('error', 'Aucun utilisateur en ligne pour le moment.');
+        }
+
+        return redirect()->route('conversations.show', $conversation);
+    }
+
 }
