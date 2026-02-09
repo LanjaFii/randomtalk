@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, usePage, router } from '@inertiajs/react'; // Ajout de 'router'
 import { useEffect, useState, useRef } from 'react';
 
 export default function Index({ conversations }) {
@@ -8,6 +8,42 @@ export default function Index({ conversations }) {
     const [convs, setConvs] = useState(conversations);
     const subscribedRef = useRef(new Set());
     
+    // --- CORRECTION V2 : Gestion avancée de l'historique et du BFCache ---
+    useEffect(() => {
+        const refreshConversations = () => {
+            router.reload({
+                only: ['conversations'],
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: (page) => {
+                    // On s'assure que le state local est bien mis à jour
+                    setConvs(page.props.conversations);
+                }
+            });
+        };
+
+        // 1. Appel immédiat au montage (cas classique)
+        refreshConversations();
+
+        // 2. Écoute l'événement 'pageshow' 
+        // C'est LE fix pour le bouton retour sur Safari/Chrome (BFCache)
+        const handlePageShow = (event) => {
+            if (event.persisted) { // Si la page vient du cache mémoire
+                refreshConversations();
+            }
+        };
+
+        // 3. Écoute l'événement 'popstate' (navigation historique standard)
+        window.addEventListener('popstate', refreshConversations);
+        window.addEventListener('pageshow', handlePageShow);
+
+        return () => {
+            window.removeEventListener('popstate', refreshConversations);
+            window.removeEventListener('pageshow', handlePageShow);
+        };
+    }, []);
+    // ---------------------------------------------------------------------
+
     useEffect(() => {
         // utilise l'état global géré par AuthenticatedLayout
         setOnlineUsers(window.__onlineUsers || []);
