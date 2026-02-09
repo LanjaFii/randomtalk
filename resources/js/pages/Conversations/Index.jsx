@@ -118,6 +118,32 @@ export default function Index({ conversations }) {
         };
     }, [convs, auth.user.id]);
 
+    
+    useEffect(() => {
+        if (!window.Echo || !auth.user) return;
+
+        const channel = window.Echo.private(`users.${auth.user.id}`);
+
+        const handler = (e) => {
+            setConvs(prev => {
+                if (prev.some(c => c.id === e.conversation.id)) return prev;
+                return [e.conversation, ...prev];
+            });
+        };
+
+        channel.listen('.conversation.created', handler);
+
+        // CLEANUP correct
+        return () => {
+            if (window.Echo && channel) {
+                channel.stopListening('.conversation.created');
+                // on ne leave pas le channel ici pour ne pas casser d'autres events
+            }
+        };
+    }, [auth.user.id]);
+
+
+
     const getOtherUser = (conversation) => {
         return conversation.user1.id === auth.user.id
             ? conversation.user2

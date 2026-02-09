@@ -19,3 +19,7 @@ Broadcast::channel('presence.online', function ($user) {
         'public_id' => $user->public_id,
     ];
 });
+
+Broadcast::channel('users.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
+});

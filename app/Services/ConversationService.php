@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Conversation;
+use App\Events\ConversationCreated;
 use App\Models\User;
 
 class ConversationService
@@ -46,9 +47,24 @@ class ConversationService
     {
         return User::where('id', '!=', $currentUser->id)
             ->where('status', 'online')
+            ->whereNotExists(function ($query) use ($currentUser) {
+
+                $query->selectRaw(1)
+                    ->from('conversations')
+                    ->where(function ($q) use ($currentUser) {
+                        $q->whereColumn('conversations.user1_id', 'users.id')
+                        ->where('conversations.user2_id', $currentUser->id);
+                    })
+                    ->orWhere(function ($q) use ($currentUser) {
+                        $q->whereColumn('conversations.user2_id', 'users.id')
+                        ->where('conversations.user1_id', $currentUser->id);
+                    });
+
+            })
             ->inRandomOrder()
             ->first();
     }
+
 
     /**
      * Démarrer une conversation aléatoire avec un utilisateur en ligne
@@ -61,7 +77,12 @@ class ConversationService
             return null;
         }
 
-        return $this->getOrCreate($currentUser, $otherUser);
+        $conversation = $this->getOrCreate($currentUser, $otherUser);
+
+        // 🔥 broadcast vers l'autre user
+        broadcast(new ConversationCreated($conversation, $otherUser->id))->toOthers();
+
+        return $conversation;
     }
 
 

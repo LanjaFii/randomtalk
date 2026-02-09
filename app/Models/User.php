@@ -113,9 +113,10 @@ class User extends Authenticatable
 
     public function conversations()
     {
-        return Conversation::where('user1_id', $this->id)
+        return Conversation::where(function ($q) {
+            $q->where('user1_id', $this->id)
             ->orWhere('user2_id', $this->id);
+        });
     }
-
 
 }
