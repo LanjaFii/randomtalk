@@ -50,10 +50,27 @@ class ConversationController extends Controller
         $conversation = $service->startRandomConversation($request->user());
 
         if (!$conversation) {
-            return back()->with('error', 'Aucun utilisateur en ligne pour le moment.');
+            return response()->json([
+                'error' => 'Aucun utilisateur en ligne pour le moment.'
+            ], 422);
         }
 
-        return redirect()->route('conversations.show', $conversation);
+        $otherUser = $conversation->user1_id === $request->user()->id 
+            ? $conversation->user2 
+            : $conversation->user1;
+
+        // ❗ PLUS DE REDIRECT
+        return response()->json([
+            'conversation' => [
+                'id' => $conversation->id,
+                'other_user' => [
+                    'id' => $otherUser->id,
+                    'name' => $otherUser->name,
+                    'email' => $otherUser->email,
+                ]
+            ]
+        ]);
     }
+
 
 }

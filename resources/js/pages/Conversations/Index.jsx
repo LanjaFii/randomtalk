@@ -1,6 +1,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage, router } from '@inertiajs/react'; // Ajout de 'router'
 import { useEffect, useState, useRef } from 'react';
+import RandomChatModal from '@/Components/RandomChatModal';
+import axios from 'axios';
+
 
 export default function Index({ conversations }) {
     const { auth } = usePage().props;
@@ -8,9 +11,38 @@ export default function Index({ conversations }) {
     const [convs, setConvs] = useState(conversations);
     const subscribedRef = useRef(new Set());
 
-    const startRandom = () => {
-        router.post(route('conversations.random'));
+    const [searching, setSearching] = useState(false);
+    const [modalStatus, setModalStatus] = useState('searching');
+    const [showModal, setShowModal] = useState(false);
+    const [foundUser, setFoundUser] = useState(null);
+
+
+    const startRandom = async () => {
+        if (searching) return;
+
+        setSearching(true);
+        setModalStatus('searching');
+        setShowModal(true);
+        setFoundUser(null);
+
+        try {
+            const response = await axios.post(route('conversations.random'));
+
+            const conversation = response.data.conversation;
+
+            setFoundUser(conversation.other_user);
+            setModalStatus('found');
+
+            setTimeout(() => {
+                router.visit(route('conversations.show', conversation.id));
+            }, 1800);
+
+        } catch (error) {
+            setModalStatus('no_users');
+            setSearching(false);
+        }
     };
+
     
     // --- CORRECTION V2 : Gestion avancée de l'historique et du BFCache ---
     useEffect(() => {
@@ -169,6 +201,25 @@ export default function Index({ conversations }) {
         >
             <Head title="Conversations" />
 
+            <RandomChatModal
+                show={showModal}
+                status={modalStatus}
+                foundUser={foundUser}
+                onClose={() => {
+                    setShowModal(false);
+                    setSearching(false);
+                }}
+                onCancel={() => {
+                    setShowModal(false);
+                    setSearching(false);
+                }}
+                onTryAgain={() => {
+                    setShowModal(false);
+                    setTimeout(startRandom, 200);
+                }}
+            />
+
+
             <div className="space-y-6">
                 {/* Stats Header */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -322,7 +373,11 @@ export default function Index({ conversations }) {
                         Every conversation is a new adventure. Meet people from around the world and discover unexpected connections.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <button onClick={startRandom} className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all duration-300 hover:scale-105 hover:shadow-cyan-500/40">
+                        <button
+                            onClick={startRandom}
+                            disabled={searching}
+                            className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all duration-300 hover:scale-105 hover:shadow-cyan-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                             <div className="absolute inset-0 bg-gradient-to-r from-white to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                             Start Random Conversation
                         </button>

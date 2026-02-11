@@ -13,7 +13,7 @@ class ConversationService
      */
     public function getOrCreate(User $userA, User $userB): Conversation
     {
-        // 🔒 Toujours trier pour garantir l’unicité
+        // 🔒 Toujours trier pour garantir l'unicité
         [$user1Id, $user2Id] = collect([$userA->id, $userB->id])->sort()->values();
 
         return Conversation::firstOrCreate([
@@ -23,7 +23,7 @@ class ConversationService
     }
 
     /**
-     * Lister les conversations d’un utilisateur
+     * Lister les conversations d'un utilisateur
      */
     public function listForUser(User $user)
     {
@@ -48,23 +48,20 @@ class ConversationService
         return User::where('id', '!=', $currentUser->id)
             ->where('status', 'online')
             ->whereNotExists(function ($query) use ($currentUser) {
-
                 $query->selectRaw(1)
                     ->from('conversations')
                     ->where(function ($q) use ($currentUser) {
                         $q->whereColumn('conversations.user1_id', 'users.id')
-                        ->where('conversations.user2_id', $currentUser->id);
+                          ->where('conversations.user2_id', $currentUser->id);
                     })
                     ->orWhere(function ($q) use ($currentUser) {
                         $q->whereColumn('conversations.user2_id', 'users.id')
-                        ->where('conversations.user1_id', $currentUser->id);
+                          ->where('conversations.user1_id', $currentUser->id);
                     });
-
             })
             ->inRandomOrder()
             ->first();
     }
-
 
     /**
      * Démarrer une conversation aléatoire avec un utilisateur en ligne
@@ -84,6 +81,4 @@ class ConversationService
 
         return $conversation;
     }
-
-
 }
