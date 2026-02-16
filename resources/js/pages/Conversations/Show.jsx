@@ -200,7 +200,7 @@ export default function Show({ conversation }) {
                                 {otherUser.name}
                             </h2>
                             <p className="text-sm text-gray-400">
-                                {isOtherOnline ? '🟢 En ligne' : `⚪ ${formatLastSeen()}`}
+                                {isOtherOnline ? ' En ligne' : ` ${formatLastSeen()}`}
                                 {realtimeStatus === 'connected' }
                             </p>
                         </div>

@@ -6,9 +6,19 @@ import axios from 'axios';
 
 
 export default function Index({ conversations }) {
+
+    const sortConversations = (list) => {
+        return [...list].sort((a, b) => {
+            const dateA = a.last_message?.created_at || a.updated_at || 0;
+            const dateB = b.last_message?.created_at || b.updated_at || 0;
+
+            return new Date(dateB) - new Date(dateA);
+        });
+    };
+
     const { auth } = usePage().props;
     const [onlineUsers, setOnlineUsers] = useState([]);
-    const [convs, setConvs] = useState(conversations);
+    const [convs, setConvs] = useState(sortConversations(conversations));
     const subscribedRef = useRef(new Set());
 
     const [searching, setSearching] = useState(false);
@@ -53,7 +63,7 @@ export default function Index({ conversations }) {
                 preserveState: true,
                 onSuccess: (page) => {
                     // On s'assure que le state local est bien mis à jour
-                    setConvs(page.props.conversations);
+                    setConvs(sortConversations(page.props.conversations));
                 }
             });
         };
@@ -97,7 +107,7 @@ export default function Index({ conversations }) {
 
     // sync props -> local state
     useEffect(() => {
-        setConvs(conversations);
+        setConvs(sortConversations(conversations));
     }, [conversations]);
 
     // realtime: subscribe to each conversation channel to update last message / unread count
@@ -113,18 +123,21 @@ export default function Index({ conversations }) {
             const messageHandler = (e) => {
                 const message = e.message;
 
-                setConvs(prev => prev.map(c => {
-                    if (c.id !== conversation.id) return c;
+                setConvs(prev => {
+                    const updated = prev.map(c => {
+                        if (c.id !== conversation.id) return c;
 
-                    const updated = { ...c, last_message: message };
+                        const newConv = { ...c, last_message: message };
 
-                    // increment unread if the incoming message is from the other user
-                    if (message.sender_id !== auth.user.id) {
-                        updated.unread_count = (c.unread_count || 0) + 1;
-                    }
+                        if (message.sender_id !== auth.user.id) {
+                            newConv.unread_count = (c.unread_count || 0) + 1;
+                        }
 
-                    return updated;
-                }));
+                        return newConv;
+                    });
+
+                    return sortConversations(updated);
+                });
             };
 
             const seenHandler = (e) => {
@@ -159,7 +172,7 @@ export default function Index({ conversations }) {
         const handler = (e) => {
             setConvs(prev => {
                 if (prev.some(c => c.id === e.conversation.id)) return prev;
-                return [e.conversation, ...prev];
+                return sortConversations([e.conversation, ...prev]);
             });
         };
 
@@ -193,6 +206,33 @@ export default function Index({ conversations }) {
         if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
         if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
         return `il y a ${Math.floor(diff / 86400)} j`;
+    };
+
+    const formatMessageTime = (date) => {
+        if (!date) return '';
+
+        const d = new Date(date);
+        const now = new Date();
+
+        const diff = (now - d) / 1000;
+
+        if (diff < 60) return 'now';
+
+        if (diff < 3600) {
+            return `${Math.floor(diff / 60)}m`;
+        }
+
+        if (diff < 86400) {
+            return d.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        }
+
+        return d.toLocaleDateString([], {
+            day: '2-digit',
+            month: '2-digit',
+        });
     };
 
     return (
@@ -329,14 +369,19 @@ export default function Index({ conversations }) {
                                                     <h4 className="text-lg font-medium text-white truncate">
                                                         {otherUser.name}
                                                     </h4>
+
                                                     <span className={`text-xs px-2 py-1 rounded-full ${isOnline ? 'bg-green-500/20 text-green-400' : 'bg-gray-800/50 text-gray-400'}`}>
                                                         {isOnline ? 'Online' : 'Offline'}
                                                     </span>
                                                 </div>
-                                                <div className="flex items-center gap-2 mt-1">
+                                                <div className="flex items-center gap-2 flex-1 min-w-0">
                                                     <div className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-600'}`}></div>
+
                                                     <p className={`text-sm truncate ${hasUnread ? 'text-white font-semibold' : 'text-gray-400'}`}>
-                                                        {lastMessage ? lastMessage.content : (isOnline ? 'Available to chat' : lastSeen)}
+                                                        {lastMessage
+                                                            ? `${lastMessage.sender_id === auth.user.id ? 'You: ' : ''}${lastMessage.content}`
+                                                            : (isOnline ? 'Available to chat' : lastSeen)
+                                                        }
                                                     </p>
 
                                                     {hasUnread && (
@@ -345,6 +390,14 @@ export default function Index({ conversations }) {
                                                         </div>
                                                     )}
                                                 </div>
+
+                                                {lastMessage && (
+                                                    <span className={`text-xs whitespace-nowrap ${
+                                                        hasUnread ? 'text-cyan-400 font-semibold' : 'text-gray-400'
+                                                    }`}>
+                                                        {formatMessageTime(lastMessage.created_at)}
+                                                    </span>
+                                                )}
                                             </div>
 
                                             {/* Arrow */}
