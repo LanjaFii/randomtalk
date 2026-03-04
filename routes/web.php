@@ -67,6 +67,9 @@ Route::middleware('auth')->group(function () {
         ->name('conversations.random')
         ->middleware('auth');
 
+    Route::post('/users/search', [ConversationController::class, 'search'])
+        ->name('users.search');
+
 
     // Messages (ICI)
     Route::post(

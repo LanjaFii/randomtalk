@@ -219,26 +219,46 @@ export default function Dashboard() {
 
                         {/* Quick Actions */}
                         <div className="rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900/40 to-black/40 p-6 backdrop-blur-sm shadow-xl shadow-black/20">
-                            <h3 className="mb-6 text-xl font-light text-white">Quick Actions</h3>
+                            <h3 className="mb-6 text-xl font-light text-white">Quick Action</h3>
                             <div className="grid grid-cols-2 gap-4">
-                                <button className="group rounded-xl border border-gray-800 bg-gray-900/50 p-4 text-center transition-all duration-300 hover:border-cyan-500/30 hover:scale-105">
+                                <div className="rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900/40 to-black/40 p-6 backdrop-blur-sm shadow-xl shadow-black/20">
+                                    <h3 className="mb-6 text-xl font-light text-white">Ready for Your Next Conversation?</h3>
+                                    
+                                    <div className="space-y-4">
+                                        <div className="flex items-start space-x-3">
+                                            <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-500/20">
+                                                <svg className="h-3 w-3 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-white">Serendipity Engine</p>
+                                                <p className="text-sm text-gray-400">Every click could lead to a life-changing discussion.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-6 text-center">
+                                        <div className="inline-flex items-center space-x-2 rounded-lg bg-gradient-to-r from-cyan-500/10 to-blue-500/10 px-4 py-2">
+                                            <div className="h-2 w-2 animate-ping rounded-full bg-green-500"></div>
+                                            <span className="text-sm text-gray-300">
+                                                <span className="font-medium text-white">{onlineUsers.length}</span> people are talking right now
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button 
+                                    className="group rounded-xl border border-gray-800 bg-gray-900/50 p-4 text-center transition-all duration-300 hover:border-cyan-500/30 hover:scale-105"
+                                    onClick={startRandom}
+                                    disabled={searching}
+                                >
                                     <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-cyan-500/10 flex items-center justify-center group-hover:bg-cyan-500/20 transition-colors">
                                         <svg className="h-6 w-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                                         </svg>
                                     </div>
-                                    <p className="text-sm font-medium text-white">Start Random Chat</p>
-                                    <p className="mt-1 text-xs text-gray-400">Find someone new</p>
-                                </button>
-
-                                <button className="group rounded-xl border border-gray-800 bg-gray-900/50 p-4 text-center transition-all duration-300 hover:border-blue-500/30 hover:scale-105">
-                                    <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
-                                        <svg className="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                        </svg>
-                                    </div>
-                                    <p className="text-sm font-medium text-white">Group Chat</p>
-                                    <p className="mt-1 text-xs text-gray-400">Join a topic</p>
+                                    <p className="text-sm font-medium text-white">{searching ? "Searching someone..." : "Start Random Chat Now"}</p>
+                                    <p className="mt-1 text-xs text-gray-400">{searching ? "Finding someone new..." : "Find someone new"}</p>
                                 </button>
                             </div>
                         </div>
@@ -325,36 +345,7 @@ export default function Dashboard() {
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="mt-6 text-center">
-                                <div className="inline-flex items-center space-x-2 rounded-lg bg-gradient-to-r from-cyan-500/10 to-blue-500/10 px-4 py-2">
-                                    <div className="h-2 w-2 animate-ping rounded-full bg-green-500"></div>
-                                    <span className="text-sm text-gray-300">
-                                        <span className="font-medium text-white">247</span> people are talking right now
-                                    </span>
-                                </div>
-                            </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* Call to Action */}
-                <div className="rounded-2xl border border-gray-800 bg-gradient-to-r from-cyan-900/20 to-blue-900/20 p-8 text-center backdrop-blur-sm shadow-xl shadow-black/30">
-                    <h2 className="mb-4 text-2xl font-light text-white">
-                        Ready for Your Next Conversation?
-                    </h2>
-                    <p className="mx-auto mb-6 max-w-2xl text-gray-300">
-                        Join {onlineUsers.length} curious minds exploring the art of conversation. 
-                        Every click could lead to a life-changing discussion.
-                    </p>
-                    <div className="flex flex-col items-center justify-center mt-10">
-                        <button
-                            onClick={startRandom}
-                            disabled={searching}
-                            className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50"
-                        >
-                            {searching ? "Searching someone..." : "Start Random Chat Now"}
-                        </button>
                     </div>
                 </div>
             </div>

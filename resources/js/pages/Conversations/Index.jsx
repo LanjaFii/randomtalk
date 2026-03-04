@@ -3,6 +3,7 @@ import { Head, Link, usePage, router } from '@inertiajs/react'; // Ajout de 'rou
 import { useEffect, useState, useRef } from 'react';
 import RandomChatModal from '@/Components/RandomChatModal';
 import axios from 'axios';
+import SearchByPublicId from '@/Components/SearchByPublicId';
 
 
 export default function Index({ conversations }) {
@@ -237,7 +238,15 @@ export default function Index({ conversations }) {
 
     return (
         <AuthenticatedLayout
-            header={"Your Conversations"}
+            header={
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-light text-white">
+                        Your Conversations
+                    </h2>
+
+                    <SearchByPublicId />
+                </div>
+            }
         >
             <Head title="Conversations" />
 

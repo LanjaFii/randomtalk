@@ -4,6 +4,7 @@ import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
+import SearchByPublicId from '@/Components/SearchByPublicId';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
@@ -88,7 +89,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                 </Link>
                             </div>
 
-                            <div className="hidden space-x-2 sm:-my-px sm:ms-10 sm:flex">
+                            <div className="hidden sm:-my-px sm:ms-10 sm:flex sm:items-center gap-4">
                                 <NavLink
                                     href={route('dashboard')}
                                     active={route().current('dashboard')}
@@ -123,10 +124,14 @@ export default function AuthenticatedLayout({ header, children }) {
                                             <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3/4 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full"></div>
                                         </>
                                     )}
-                                    {!route().current('conversations.*') && (
-                                        <div className="absolute inset-0 bg-gray-800/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-                                    )}
                                 </NavLink>
+
+                                {/* 🔎 SEARCH BAR (only on conversations pages) */}
+                                {route().current('conversations.*') && (
+                                    <div className="ml-2">
+                                        <SearchByPublicId />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -331,9 +336,13 @@ export default function AuthenticatedLayout({ header, children }) {
             {header && (
                 <header className="relative z-20 border-b border-gray-800 bg-gray-900/30 backdrop-blur-sm">
                     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                        <h2 className="text-2xl font-light text-white">
-                            {header}
-                        </h2>
+                        {typeof header === 'string' ? (
+                            <h2 className="text-2xl font-light text-white">
+                                {header}
+                            </h2>
+                        ) : (
+                            header
+                        )}
                     </div>
                 </header>
             )}
