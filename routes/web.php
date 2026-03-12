@@ -69,6 +69,10 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/users/search', [ConversationController::class, 'search'])
         ->name('users.search');
+    
+    // Export conversation to PDF
+    Route::get('/conversations/{conversation}/export', [ConversationController::class, 'exportPdf'])
+    ->name('conversations.export');
 
 
     // Messages (ICI)

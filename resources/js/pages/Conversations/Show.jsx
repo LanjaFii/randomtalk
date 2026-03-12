@@ -205,6 +205,29 @@ export default function Show({ conversation }) {
                             </p>
                         </div>
                     </div>
+
+                    <div className="flex gap-2">
+                        <a
+                            href={route('conversations.export', {
+                                conversation: conversation.id,
+                                type: 'today'
+                            })}
+                            className="px-3 py-1 text-xs bg-gray-800 rounded"
+                        >
+                            PDF du jour
+                        </a>
+
+                        <a
+                            href={route('conversations.export', {
+                                conversation: conversation.id,
+                                type: 'all'
+                            })}
+                            className="px-3 py-1 text-xs bg-gray-800 rounded"
+                        >
+                            Toute la discussion
+                        </a>
+                    </div>
+
                     <div className="hidden sm:block">
                         <div className={`px-3 py-1 rounded-full text-xs font-medium ${isOtherOnline ? 'bg-green-500/20 text-green-400' : 'bg-gray-800/50 text-gray-400'}`}>
                             {isOtherOnline ? 'Disponible pour discuter' : 'Dernièrement en ligne'}

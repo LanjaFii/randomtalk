@@ -6,6 +6,9 @@ use App\Models\User;
 use App\Services\ConversationService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Models\Conversation;
+
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ConversationController extends Controller
 {
@@ -92,5 +95,27 @@ class ConversationController extends Controller
         ]);
     }
 
+    public function exportPdf(Request $request, Conversation $conversation)
+    {
+        $type = $request->type ?? 'all';
+
+        if ($type === 'today') {
+            $messages = $conversation->messages()
+                ->whereDate('created_at', today())
+                ->with('sender')
+                ->get();
+        } else {
+            $messages = $conversation->messages()
+                ->with('sender')
+                ->get();
+        }
+
+        $pdf = Pdf::loadView('pdf.conversation', [
+            'conversation' => $conversation,
+            'messages' => $messages
+        ]);
+
+        return $pdf->download('conversation-'.$conversation->id.'.pdf');
+    }
 
 }

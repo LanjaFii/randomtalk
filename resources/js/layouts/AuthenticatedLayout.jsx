@@ -126,12 +126,10 @@ export default function AuthenticatedLayout({ header, children }) {
                                     )}
                                 </NavLink>
 
-                                {/* 🔎 SEARCH BAR (only on conversations pages) */}
-                                {route().current('conversations.*') && (
-                                    <div className="ml-2">
-                                        <SearchByPublicId />
-                                    </div>
-                                )}
+                                {/* 🔎 SEARCH BAR */}
+                                <div className="ml-2">
+                                    <SearchByPublicId />
+                                </div>
                             </div>
                         </div>
 
