@@ -29,11 +29,23 @@ Route::get('/', function () {
 |--------------------------------------------------------------------------
 */
 
+use App\Models\Message;
+use Carbon\Carbon;
+
 Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+
+    $messages = Message::selectRaw('DATE(created_at) as date, COUNT(*) as total')
+        ->where('created_at', '>=', now()->subDays(7))
+        ->groupBy('date')
+        ->orderBy('date')
+        ->get();
+
+    return Inertia::render('Dashboard', [
+        'messageStats' => $messages
+    ]);
 })
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+->middleware(['auth', 'verified'])
+->name('dashboard');
 
 /*
 |--------------------------------------------------------------------------

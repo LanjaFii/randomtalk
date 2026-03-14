@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import RandomChatModal from '@/Components/RandomChatModal';
 import { Head, router, usePage } from '@inertiajs/react';
+import Chart from "react-apexcharts";
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -10,8 +11,34 @@ export default function Dashboard() {
     const [showModal, setShowModal] = useState(false);
     const [foundUser, setFoundUser] = useState(null);
     const [conversationId, setConversationId] = useState(null);
-    const { props } = usePage();
     const [onlineUsers, setOnlineUsers] = useState([]);
+
+    // For apexcharts stats
+    const { props } = usePage();
+    const messageStats = props.messageStats || [];
+
+    // style apexcharts
+    const chartOptions = {
+        chart: {
+            type: "area",
+            toolbar: { show: false }
+        },
+        theme: { mode: "dark" },
+        stroke: {
+            curve: "smooth",
+            width: 3
+        },
+        xaxis: {
+            categories: messageStats.map(m => m.date)
+        }
+    };
+
+    const chartSeries = [
+        {
+            name: "Messages",
+            data: messageStats.map(m => m.total)
+        }
+    ];
 
     useEffect(() => {
         setOnlineUsers(window.__onlineUsers || []);
@@ -266,42 +293,21 @@ export default function Dashboard() {
 
                     {/* Right Column */}
                     <div className="space-y-8">
-                        {/* Featured Conversation */}
+                        {/* Messages traffic */}
                         <div className="rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900/40 to-black/40 p-6 backdrop-blur-sm shadow-xl shadow-black/20">
+
                             <div className="mb-6 flex items-center justify-between">
-                                <h3 className="text-xl font-light text-white">Featured Conversation</h3>
-                                <div className="animate-bounce">
-                                    <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                                </div>
+                                <h3 className="text-xl font-light text-white">Messages Traffic</h3>
+                                <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div>
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="flex space-x-3">
-                                    <div className="h-8 w-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600"></div>
-                                    <div className="flex-1 rounded-lg bg-gray-900/50 p-3">
-                                        <p className="text-sm text-gray-300">"What if our conversations were never meant to have meaning, but simply to exist?"</p>
-                                        <p className="mt-1 text-xs text-gray-500">— Anonymous Thinker</p>
-                                    </div>
-                                </div>
+                            <Chart
+                                options={chartOptions}
+                                series={chartSeries}
+                                type="area"
+                                height={280}
+                            />
 
-                                <div className="flex space-x-3">
-                                    <div className="h-8 w-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-600"></div>
-                                    <div className="flex-1 rounded-lg bg-gray-900/50 p-3">
-                                        <p className="text-sm text-gray-300">"Every word spoken creates ripples in the digital ocean. Where will your ripples go today?"</p>
-                                        <p className="mt-1 text-xs text-gray-500">— Digital Poet</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-6">
-                                <div className="relative h-40 w-full overflow-hidden rounded-xl bg-gradient-to-br from-gray-900 to-black">
-                                    <img 
-                                        src="https://media.giphy.com/media/3o7aD2kKcE7rRwJqpy/giphy.gif" 
-                                        alt="Conversation animation"
-                                        className="h-full w-full object-cover opacity-60"
-                                    />
-                                </div>
-                            </div>
                         </div>
 
                         {/* Why RandomTalk? */}
